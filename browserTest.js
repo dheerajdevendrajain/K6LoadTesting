@@ -1,6 +1,6 @@
 import { check } from 'k6';
 import { browser } from 'k6/browser'
-import  http from 'k6/http'
+import http from 'k6/http'
 
 export const options = {
     // 4 to 5 users will be simulated for 30 seconds
@@ -18,7 +18,7 @@ export const options = {
             },
         },
         be: {
-            executor:'constant-vus',
+            executor: 'constant-vus',
             exec: 'backendStress',
             vus: 10,
             duration: '1m'

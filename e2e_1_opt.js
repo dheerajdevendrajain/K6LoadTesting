@@ -3,10 +3,24 @@ import http from 'k6/http';
 import { Counter, Rate } from 'k6/metrics';
 
 const BASE_URL = 'https://quickpizza.grafana.com';
-const PASSWORD = "securepassword12345678";
+
 
 const authenticationRate = new Rate('authentication_rate'); //1,0,1,1,0
 const sucessfulOrders = new Counter('successful_orders');
+
+
+const configobj = JSON.parse(open('./test-config.json'));
+const usersobj = JSON.parse(open('./users.json'));
+
+const PASSWORD = usersobj.password;
+
+function getTestConfig() {
+    const testtype = __ENV.TEST_TYPE || 'smoke';
+    const config = configobj[testtype];
+    console.log(config);
+
+    return config;
+}
 
 function randomString(length) {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -19,11 +33,12 @@ function randomString(length) {
     return result;
 
 }
+const selectedConfig = getTestConfig();
 
 export const options = {
     cloud: {
         // Project: Default project
-        projectID: 7473754,
+        projectID: 7474021,
         distribution: {
             'amazon:us:ashburn': { loadZone: 'amazon:us:ashburn', percent: 100 },
             // 'amazon:gb:london': { loadZone: 'amazon:gb:london', percent: 33 },
@@ -32,24 +47,28 @@ export const options = {
         // Test runs with the same name groups test runs together.
         name: 'Test e2e flow',
     },
-    stages: [
-        { duration: '5s', target: 2 }, // Ramp up to 2 VU over 5 seconds
-        { duration: '6s', target: 4 }, // Stay at 4 VU for 6 seconds
-        { duration: '3s', target: 0 } // Ramp down to 0 VUs over 3 seconds
-    ],
-    thresholds: {
-        'http_req_duration': ['p(95) < 450'], // 95% of requests should be below 500ms
-        'http_req_failed': ['rate < 0.1'], // Less than 10% of requests should fail
-        'checks': ['rate > 0.9'], // At least 90% of checks should pass
-        'iteration_duration': ['p(95) < 8000'], // 95% of iterations should complete within 1 second
-        'group_duration{group:::Order management}': ['p(95) < 1500'], // 95% of Order management group should complete within 5 seconds
-        'authentication_rate': ['rate > 0.9'], // At least 90% of authentication attempts should be successful
-        'successful_orders': ['count > 5'] // At least 1 successful order should be created
-    }
+    stages: selectedConfig.stages,
+
+    thresholds:  selectedConfig.thresholds
     //
 };
 
-export default function () {
+export function setup(){
+const apicheck = http.get(`${BASE_URL}`);
+
+if(apicheck.status === 0)
+    {
+        console.log("API is not reachable. Aborting the test.");
+        throw new Error("API is not reachable. Aborting the test.");
+    }
+
+    const testconfig ={
+        testStartTime: new Date().toISOString();
+    };
+    return testconfig;
+}
+
+export default function (data) {
     let userRegistered = false;
     let authToken = null;
     let USERNAME = `dhiraj${randomString(7)}1`;
@@ -175,5 +194,9 @@ export default function () {
         sleep(0.5);
     })
 
+
+}
+
+export function tearDown(data) {
 
 }
