@@ -62,8 +62,8 @@ if(apicheck.status === 0)
         throw new Error("API is not reachable. Aborting the test.");
     }
 
-    const testconfig ={
-        testStartTime: new Date().toISOString();
+    const testconfig = {
+        testStartTime: new Date().toISOString(),
     };
     return testconfig;
 }
